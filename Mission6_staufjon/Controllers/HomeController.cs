@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Mission6_staufjon.Models;
 using System;
@@ -11,13 +12,11 @@ namespace Mission6_staufjon.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
         private MovieContext MovieFileContext { get; set; }
         //constructor
-        public HomeController(ILogger<HomeController> logger, MovieContext rg)
+        public HomeController(MovieContext rg)
         {
-            _logger = logger;
-            MovieFileContext = rg ?? throw new ArgumentNullException(nameof(rg));
+            MovieFileContext = rg;
         }
 
         public IActionResult Index()
@@ -27,7 +26,8 @@ namespace Mission6_staufjon.Controllers
         [HttpGet]
         public IActionResult Movie()
         {
-            return View("Movie");
+            ViewBag.Categories = MovieFileContext.Categories.ToList();
+            return View();
         }
         [HttpPost]
         public IActionResult Movie(MovieCollection mc)
@@ -41,8 +41,48 @@ namespace Mission6_staufjon.Controllers
             }
             else
             {
+                ViewBag.Categories = MovieFileContext.Categories.ToList();
                 return View();
             }
+        }
+        //get the movie list
+        public IActionResult MovieList()
+        {
+            // var entries = MovieFileContext.Responses.Where(x => x.Title == "name")
+            // .orderby(x => x.Category)
+            // .ToList();
+            var entries = MovieFileContext.responses.Include(x => x.Category)
+                .OrderBy(x => x.Title)
+                .ToList();
+            return View(entries);
+        }
+        [HttpGet]
+        public IActionResult Edit(int movieid)
+        {
+            ViewBag.Categories = MovieFileContext.Categories.ToList();
+            var entry = MovieFileContext.responses.Single(x => x.MovieId == movieid);
+            return View("Movie", entry);
+        }
+        [HttpPost]
+        public IActionResult Edit(MovieCollection update)
+        {
+            MovieFileContext.Update(update);
+            MovieFileContext.SaveChanges();
+            return RedirectToAction("MovieList");
+        }
+        [HttpGet]
+        public IActionResult Delete(int movieid)
+        {
+            var entry = MovieFileContext.responses.Single(x => x.MovieId == movieid);
+
+            return View(entry);
+        }
+        [HttpPost]
+        public IActionResult Delete(MovieCollection mc)
+        {
+            MovieFileContext.responses.Remove(mc);
+            MovieFileContext.SaveChanges();
+            return RedirectToAction("MovieList");
         }
 
         public IActionResult Podcast()
@@ -50,15 +90,5 @@ namespace Mission6_staufjon.Controllers
             return View("MyPodcast");
         }
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
     }
 }

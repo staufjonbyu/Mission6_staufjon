@@ -8,7 +8,10 @@ namespace Mission6_staufjon.Models
         [Required]
         public int MovieId { get; set; }
         [Required]
-        public string Category { get; set; }
+        // build fk relationship
+        public int CategoryId { get; set; }
+        public Category Category { get; set; } 
+
         [Required]
         public string Title { get; set; }
         [Required]
